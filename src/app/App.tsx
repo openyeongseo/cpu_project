@@ -745,29 +745,48 @@ function estimateDistanceKm(areaA:string, areaB:string){
 
 type VibePref="조용한 편"|"북적이는 편";
 
+function vibeMatchScore(p:Popup, vibePref:VibePref){
+  return vibePref==="북적이는 편"
+    ?(p.congestion==="혼잡"||p.congestion==="매우 혼잡"?2:p.congestion==="보통"?1:0)
+    :(p.congestion==="여유"?2:p.congestion==="보통"?1:0);
+}
+function walkMinutesBetween(areaA:string, areaB:string){
+  return Math.min(25,Math.max(3,Math.round(estimateDistanceKm(areaA,areaB)*11)));
+}
+
 function buildAiCourse(selPrefs:string[], vibePref:VibePref, radiusKm:number){
   const matched=ALL_POPUPS.filter(p=>selPrefs.includes(toFindCategory(p.category)));
   const pool=matched.length>0?matched:ALL_POPUPS;
 
-  const scored=pool
-    .map(p=>{
-      const distance=estimateDistanceKm(MY_LOCATION_AREA,p.area);
-      const vibeMatch=vibePref==="북적이는 편"
-        ?(p.congestion==="혼잡"||p.congestion==="매우 혼잡"?2:p.congestion==="보통"?1:0)
-        :(p.congestion==="여유"?2:p.congestion==="보통"?1:0);
-      const withinRadius=distance<=radiusKm;
-      const discoveryBonus=p.isHot?1:0;
-      const score=(withinRadius?3:0)+vibeMatch*2+discoveryBonus-distance*0.1;
-      return {p,distance,score};
-    })
-    .sort((a,b)=>b.score-a.score);
+  // 1번 스팟: 내 위치 기준으로 가장 점수 높은 곳
+  const first=[...pool].sort((a,b)=>{
+    const da=estimateDistanceKm(MY_LOCATION_AREA,a.area), db=estimateDistanceKm(MY_LOCATION_AREA,b.area);
+    const scoreA=(da<=radiusKm?3:0)+vibeMatchScore(a,vibePref)*2+(a.isHot?1:0)-da*0.1;
+    const scoreB=(db<=radiusKm?3:0)+vibeMatchScore(b,vibePref)*2+(b.isHot?1:0)-db*0.1;
+    return scoreB-scoreA;
+  })[0];
 
-  const stops=scored.slice(0,3).map(s=>s.p);
+  // 다음 스팟들은 "직전 스팟과 가까운 곳" 위주로 동선을 이어붙임 (걸어서 이동 가능한 코스가 되도록)
+  const stops=[first];
+  const walkTimes:number[]=[];
+  let current=first;
+  while(stops.length<3){
+    const candidates=pool.filter(p=>!stops.some(s=>s.id===p.id));
+    if(candidates.length===0) break;
+    const next=[...candidates].sort((a,b)=>{
+      const da=estimateDistanceKm(current.area,a.area), db=estimateDistanceKm(current.area,b.area);
+      const scoreA=vibeMatchScore(a,vibePref)*2+(a.isHot?1:0)-da*0.4;
+      const scoreB=vibeMatchScore(b,vibePref)*2+(b.isHot?1:0)-db*0.4;
+      return scoreB-scoreA;
+    })[0];
+    walkTimes.push(walkMinutesBetween(current.area,next.area));
+    stops.push(next);
+    current=next;
+  }
+
   const areas=Array.from(new Set(stops.map(p=>p.area)));
   const totalWait=stops.reduce((sum,p)=>sum+(WAIT_MINUTES[p.congestion]||15),0);
-  const maxDistance=Math.max(0,...scored.slice(0,3).map(s=>s.distance));
-  const walkTimes=stops.slice(0,-1).map((p,i)=>
-    Math.max(3,Math.round(estimateDistanceKm(p.area,stops[i+1].area)*13)));
+  const maxDistance=estimateDistanceKm(MY_LOCATION_AREA,first.area);
 
   return { title:`나만의 ${areas.join("·")} 코스`, stops, totalWait:`약 ${totalWait}분`, maxDistance, walkTimes };
 }
