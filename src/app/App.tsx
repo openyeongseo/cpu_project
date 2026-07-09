@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import {
   Search, MapPin, Heart, Star, ArrowRight, Bell, Home,
@@ -1717,6 +1717,123 @@ const COMPANIONS:Companion[]=[
 ];
 const COMPANION_PEOPLE_OPTS=["1명 구해요","2명 구해요","3명 이상"];
 
+function WheelColumn({ options, value, onChange, width=56 }:{ options:string[]; value:string; onChange:(v:string)=>void; width?:number }) {
+  const itemHeight=34;
+  const visibleCount=5;
+  const padCount=Math.floor(visibleCount/2);
+  const ref=useRef<HTMLDivElement>(null);
+  const scrollTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
+
+  useEffect(()=>{
+    const idx=Math.max(0,options.indexOf(value));
+    if(ref.current) ref.current.scrollTop=idx*itemHeight;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
+
+  function scrollToIndex(i:number){
+    ref.current?.scrollTo({top:i*itemHeight,behavior:"smooth"});
+  }
+  function handleScroll(){
+    if(scrollTimer.current) clearTimeout(scrollTimer.current);
+    scrollTimer.current=setTimeout(()=>{
+      if(!ref.current) return;
+      const idx=Math.round(ref.current.scrollTop/itemHeight);
+      const clamped=Math.max(0,Math.min(options.length-1,idx));
+      if(options[clamped]!==value) onChange(options[clamped]);
+      scrollToIndex(clamped);
+    },120);
+  }
+
+  return (
+    <div className="relative overflow-hidden" style={{width,height:itemHeight*visibleCount}}>
+      <div className="absolute left-0 right-0 pointer-events-none rounded-lg" style={{top:itemHeight*padCount,height:itemHeight,background:"#E8F1FF",zIndex:0}}/>
+      <div ref={ref} onScroll={handleScroll} className="relative h-full overflow-y-scroll scrollbar-hide"
+        style={{scrollSnapType:"y mandatory",paddingTop:itemHeight*padCount,paddingBottom:itemHeight*padCount,zIndex:1}}>
+        {options.map((o,i)=>(
+          <div key={o} onClick={()=>{onChange(o);scrollToIndex(i);}}
+            className="flex items-center justify-center cursor-pointer select-none transition-all"
+            style={{height:itemHeight,scrollSnapAlign:"center",fontSize:o===value?15:13,fontWeight:o===value?800:500,color:o===value?"#0A1628":"#94A3B8"}}>
+            {o}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MiniDatePicker({ value, onChange }:{ value:string; onChange:(v:string)=>void }) {
+  const [open,setOpen]=useState(false);
+  const days=["일","월","화","수","목","금","토"];
+  const cells=Array.from({length:2+31},(_,i)=>i<2?null:i-2+1);
+
+  return (
+    <div className="relative">
+      <button onClick={()=>setOpen(v=>!v)} className="w-full flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm text-left"
+        style={{background:"#F7F9FF",border:"1px solid rgba(34,99,236,0.12)",color:value?"#0A1628":"#94A3B8"}}>
+        <CalendarDays size={14} color="#2263EC" className="flex-shrink-0"/> {value||"날짜 선택"}
+      </button>
+      {open&&(
+        <motion.div initial={{opacity:0,y:-6}} animate={{opacity:1,y:0}}
+          className="absolute z-30 mt-2 p-3 rounded-xl bg-white" style={{width:240,boxShadow:"0 8px 30px rgba(0,0,0,0.16)",border:"1px solid rgba(34,99,236,0.1)"}}>
+          <p className="text-xs font-bold text-[#0A1628] mb-2 text-center">2025년 7월</p>
+          <div className="grid grid-cols-7 gap-1 mb-1">
+            {days.map((d,i)=>(
+              <div key={d} className="text-center text-[10px] font-bold" style={{color:i===0?"#EF4444":i===6?"#2263EC":"#94A3B8"}}>{d}</div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {cells.map((day,i)=>{
+              if(day===null) return <div key={i}/>;
+              const label=`07.${String(day).padStart(2,"0")}(${weekdayOf(day)})`;
+              const isSel=value===label;
+              return (
+                <button key={i} onClick={()=>{onChange(label);setOpen(false);}}
+                  className="aspect-square rounded-lg text-xs font-semibold"
+                  style={isSel?{background:"#2263EC",color:"#fff"}:{color:"#0A1628"}}>
+                  {day}
+                </button>
+              );
+            })}
+          </div>
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
+const TIME_AMPM_OPTS=["오전","오후"];
+const TIME_HOUR_OPTS=["1시","2시","3시","4시","5시","6시","7시","8시","9시","10시","11시","12시"];
+
+function MiniTimePicker({ value, onChange }:{ value:string; onChange:(v:string)=>void }) {
+  const [open,setOpen]=useState(false);
+  const [ampm,setAmpm]=useState(value.split(" ")[0]||"오전");
+  const [hour,setHour]=useState(value.split(" ")[1]||"10시");
+
+  function confirm(){
+    onChange(`${ampm} ${hour}`);
+    setOpen(false);
+  }
+
+  return (
+    <div className="relative">
+      <button onClick={()=>setOpen(v=>!v)} className="w-full flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm text-left"
+        style={{background:"#F7F9FF",border:"1px solid rgba(34,99,236,0.12)",color:value?"#0A1628":"#94A3B8"}}>
+        <Clock size={14} color="#2263EC" className="flex-shrink-0"/> {value||"시간 선택"}
+      </button>
+      {open&&(
+        <motion.div initial={{opacity:0,y:-6}} animate={{opacity:1,y:0}}
+          className="absolute z-30 mt-2 p-3 rounded-xl bg-white" style={{width:180,boxShadow:"0 8px 30px rgba(0,0,0,0.16)",border:"1px solid rgba(34,99,236,0.1)"}}>
+          <div className="flex gap-2 justify-center">
+            <WheelColumn options={TIME_AMPM_OPTS} value={ampm} onChange={setAmpm}/>
+            <WheelColumn options={TIME_HOUR_OPTS} value={hour} onChange={setHour}/>
+          </div>
+          <button onClick={confirm} className="w-full mt-2 py-2 rounded-lg text-xs font-bold text-white" style={{background:"#2263EC"}}>확인</button>
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
 function CompanionWriteForm({ onSubmit, onCancel }:{ onSubmit:(c:Omit<Companion,"id"|"applies"|"comments">)=>void; onCancel:()=>void }) {
   const [popup,setPopup]=useState(ALL_POPUPS[0].name);
   const [area,setArea]=useState(ALL_POPUPS[0].area);
@@ -1743,10 +1860,8 @@ function CompanionWriteForm({ onSubmit, onCancel }:{ onSubmit:(c:Omit<Companion,
         {ALL_POPUPS.map(p=><option key={p.id} value={p.name}>{p.name}</option>)}
       </select>
       <div className="grid grid-cols-2 gap-3 mb-3">
-        <input value={date} onChange={e=>setDate(e.target.value)} placeholder="날짜 (예: 07.15(화))"
-          className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{background:"#F7F9FF",border:"1px solid rgba(34,99,236,0.12)"}}/>
-        <input value={time} onChange={e=>setTime(e.target.value)} placeholder="시간 (예: 오후 2시)"
-          className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{background:"#F7F9FF",border:"1px solid rgba(34,99,236,0.12)"}}/>
+        <MiniDatePicker value={date} onChange={setDate}/>
+        <MiniTimePicker value={time} onChange={setTime}/>
       </div>
       <div className="flex flex-wrap gap-2 mb-3">
         {COMPANION_PEOPLE_OPTS.map(p=>(
