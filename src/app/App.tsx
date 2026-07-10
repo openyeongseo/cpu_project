@@ -11,6 +11,7 @@ import {
   Mail, Lock, User as UserIcon, Eye, EyeOff,
   LogOut, Trash2, AlertTriangle, ShieldCheck, Check
 } from "lucide-react";
+import courseMapImg from "../assets/course-map.png";
 
 type Page = "home" | "find" | "course" | "my" | "community"
   | "login" | "signup" | "findId" | "findPassword" | "detail";
@@ -891,18 +892,22 @@ function CoursePage({ liked, onToggleLike, onOpenDetail, aiCredits, onUseCredit 
         )}
 
         {/* 지도 배경 */}
-        <div className="absolute inset-0" style={{background:"linear-gradient(160deg,#EAF1FE 0%,#F5F8FF 100%)"}}>
-          <div className="absolute inset-0 opacity-50" style={{backgroundImage:"linear-gradient(rgba(34,99,236,0.08) 1px,transparent 1px),linear-gradient(90deg,rgba(34,99,236,0.08) 1px,transparent 1px)",backgroundSize:"40px 40px"}}/>
-          <div className="absolute" style={{left:"-10%",top:"52%",width:"130%",height:30,background:"linear-gradient(90deg,rgba(96,165,250,0.4),rgba(147,197,253,0.55),rgba(96,165,250,0.4))",transform:"rotate(-5deg)",borderRadius:20}}/>
-          <div className="absolute rounded-full" style={{left:"10%",top:"16%",width:64,height:44,background:"rgba(110,231,183,0.35)"}}/>
-          <div className="absolute rounded-full" style={{left:"66%",top:"66%",width:80,height:52,background:"rgba(110,231,183,0.3)"}}/>
-          <div className="absolute rounded-full" style={{left:"36%",top:"72%",width:44,height:34,background:"rgba(110,231,183,0.28)"}}/>
+        <div className="absolute inset-0 overflow-hidden">
+          <img src={courseMapImg} alt="지도" className="absolute inset-0 w-full h-full object-cover"/>
           {Object.entries(MAP_AREA_POS).map(([area,pos])=>(
-            <span key={area} className="absolute text-[13px] font-extrabold pointer-events-none select-none whitespace-nowrap"
-              style={{left:`${pos.x}%`,top:`${pos.y}%`,transform:"translate(-50%,-50%)",color:"rgba(10,22,40,0.16)"}}>
-              {area}
+            <span key={area} className="absolute text-[10px] font-bold pointer-events-none select-none whitespace-nowrap px-1.5 py-0.5 rounded"
+              style={{left:`${pos.x}%`,top:`${pos.y}%`,transform:"translate(-50%,-50%)",color:"#334155",background:"rgba(255,255,255,0.85)",boxShadow:"0 1px 4px rgba(0,0,0,0.15)"}}>
+              {area}동
             </span>
           ))}
+          {(()=>{ const my=MAP_AREA_POS[MY_LOCATION_AREA]; return (
+            <div className="absolute flex flex-col items-center pointer-events-none" style={{left:`${my.x}%`,top:`${my.y}%`,transform:"translate(-50%,-50%)"}}>
+              <motion.span className="absolute rounded-full" style={{width:26,height:26,background:"rgba(34,99,236,0.35)"}}
+                animate={{scale:[1,1.9,1],opacity:[0.6,0,0.6]}} transition={{duration:2.2,repeat:Infinity,ease:"easeOut"}}/>
+              <span className="relative rounded-full" style={{width:11,height:11,background:"#2263EC",border:"2px solid #fff",boxShadow:"0 1px 4px rgba(0,0,0,0.3)"}}/>
+              <span className="absolute text-[9px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{top:14,background:"#0A1628",color:"#fff"}}>내 위치</span>
+            </div>
+          );})()}
           {mapPopups.map(({p,status})=>{
             const pos=MAP_AREA_POS[p.area]||{x:50,y:50};
             const color=status==="오픈예정"?"#F59E0B":status==="종료임박"?"#EF4444":"#2263EC";
