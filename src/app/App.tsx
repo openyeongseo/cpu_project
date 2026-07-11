@@ -293,7 +293,7 @@ function MonthlyBanner({ onOpenDetail }:{ onOpenDetail:(id:number)=>void }) {
             <motion.button key={i} onClick={()=>isActive?onOpenDetail(s.id):go(i)}
               animate={{ x:d*310, scale:isActive?1:0.8, opacity:isActive?1:0.4, filter:isActive?"blur(0px)":"blur(1.5px)", zIndex:isActive?10:1 }}
               transition={{duration:0.5,ease:"easeOut"}}
-              className="absolute rounded-2xl overflow-hidden cursor-pointer"
+              className="absolute rounded-xl overflow-hidden cursor-pointer"
               style={{width:isActive?560:420,height:isActive?372:278}}>
               <img src={imgUrl(s.imgId,1100,700)} alt={s.name} className="w-full h-full object-cover"/>
               <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent"/>
@@ -931,7 +931,7 @@ function CoursePage({ liked, onToggleLike, onOpenDetail, aiCredits, onUseCredit 
 
       {/* 바텀시트 */}
       <motion.div animate={{height:sheetExpanded?"96%":210}} transition={{type:"spring",damping:28,stiffness:280}}
-          className="absolute left-0 right-0 bottom-0 z-30 flex flex-col rounded-t-2xl bg-white overflow-hidden"
+          className="absolute left-0 right-0 bottom-0 z-30 flex flex-col rounded-t-xl bg-white overflow-hidden"
           style={{boxShadow:"0 -8px 30px rgba(0,0,0,0.14)"}}>
           <button onClick={()=>setSheetExpanded(v=>!v)} className="flex flex-col items-center pt-2.5 pb-2 flex-shrink-0">
             <span className="w-9 h-1 rounded-full mb-1.5" style={{background:"#E2E8F0"}}/>
